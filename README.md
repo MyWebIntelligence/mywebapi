@@ -3,6 +3,14 @@
 Component repository (backend at scale, optional).  
 Start here for the main tool and installation: [https://github.com/MyWebIntelligence/mwi](https://github.com/MyWebIntelligence/mwi?utm_source=chatgpt.com)
 
+## Roadmap (stabilization)
+Target: Q2 2026
+- [ ] End-to-end API aligned with mwi pipeline
+- [ ] Versioned endpoints + minimal compatibility policy
+- [ ] One-command demo + example dataset
+- [ ] CI tests (smoke tests + lint)
+
+
 This repository contains two main applications that are currently in a state of transition:
 
 1.  **`MyWebIntelligenceAPI`**: A modern backend API built with FastAPI, PostgreSQL, and Celery. It is designed for crawling and content analysis and is fully containerized. **This is the recommended component to run.**
