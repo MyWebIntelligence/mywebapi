@@ -1,4 +1,7 @@
-# MyWebIntelligence Project
+# MyWebIntelligence API scale project [In progess, 2026 June]
+
+Component repository (backend at scale, optional).  
+Start here for the main tool and installation: [https://github.com/MyWebIntelligence/mwi](https://github.com/MyWebIntelligence/mwi?utm_source=chatgpt.com)
 
 This repository contains two main applications that are currently in a state of transition:
 
