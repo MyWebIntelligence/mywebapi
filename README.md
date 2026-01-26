@@ -19,7 +19,7 @@ This repository contains two main applications that are currently in a state of 
 The long-term goal is to migrate `MyWebClient` to use the new `MyWebIntelligenceAPI`, but they currently operate independently.
 
 <!-- badges: start -->
-![MyWebIntelligence Banner](https://github.com/MyWebIntelligence/mwiR/man/figures/mwibanner.png)
+![MyWebIntelligence Banner](https://raw.githubusercontent.com/MyWebIntelligence/mwiR/refs/heads/main/man/figures/mwibanner.png)
 <!-- badges: end -->
 
 ## 1. MyWebIntelligenceAPI (Backend Service)
