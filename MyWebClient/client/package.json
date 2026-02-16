@@ -26,10 +26,10 @@
     "typescript": "^3.9.3"
   },
   "scripts": {
-    "start": "PORT=3001 NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "./node_modules/.bin/react-scripts start",
+    "build": "./node_modules/.bin/react-scripts build",
+    "test": "./node_modules/.bin/react-scripts test",
+    "eject": "./node_modules/.bin/react-scripts eject"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -46,5 +46,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://mywebclient:3000"
+  "proxy": "http://localhost:5001/"
 }

@@ -27,60 +27,45 @@ const JWT_EXPIRES_IN = "7d" // Durée de validité du token
  * @returns {object} JSON avec `success: true` et `user` en cas de succès, ou `error` en cas d'échec.
  */
 router.post("/login", (req, res) => {
-    console.log("Début du traitement de la requête /login");
-    const { identifier, password } = req.body;
-    console.log(`Tentative de connexion pour l'identifiant: ${identifier}`);
-
+    const { identifier, password } = req.body
     AdminDB.findUser(identifier, async (err, user) => {
-        if (err) {
-            console.error("Erreur lors de la recherche de l'utilisateur:", err);
-            return res.status(500).json({ error: "Erreur interne du serveur" });
+        if (err || !user) {
+            return res.status(401).json({ error: "Utilisateur non trouvé" })
         }
-        if (!user) {
-            console.log(`Utilisateur non trouvé pour l'identifiant: ${identifier}`);
-            return res.status(401).json({ error: "Utilisateur non trouvé" });
-        }
-
-        console.log(`Utilisateur trouvé: ${user.username} (ID: ${user.id})`);
-
         if (user.is_blocked && user.blocked_until && new Date(user.blocked_until) > new Date()) {
-            console.log(`Le compte de l'utilisateur ${user.username} est bloqué.`);
-            return res.status(403).json({ error: "Compte bloqué temporairement" });
+            return res.status(403).json({ error: "Compte bloqué temporairement" })
         }
-
-        console.log("Début de la comparaison du mot de passe.");
-        const match = await bcrypt.compare(password, user.password_hash);
-        console.log(`Résultat de la comparaison du mot de passe: ${match}`);
-
+        const match = await bcrypt.compare(password, user.password_hash)
         if (!match) {
-            console.log("Le mot de passe est incorrect.");
             // Incrémenter compteur d'échecs, bloquer si besoin
             AdminDB.incrementFailedAttempts(user.id, 5, (err2) => {
-                if (err2) console.error("Erreur lors de l'incrémentation des tentatives échouées:", err2);
-                AdminDB.addAccessLog({ user_id: user.id, ip: req.ip, status: "failure", reason: "bad password" }, () => {});
-                return res.status(401).json({ error: "Mot de passe incorrect" });
-            });
-            return;
+                AdminDB.addAccessLog({ user_id: user.id, ip: req.ip, status: "failure", reason: "bad password" }, () => {})
+                if (err2) {
+                    return res.status(500).json({ error: "Erreur lors de la gestion du blocage" })
+                }
+                // Vérifier si l'utilisateur est maintenant bloqué
+                AdminDB.findUser(user.id, (err3, updatedUser) => {
+                    if (updatedUser && updatedUser.is_blocked && updatedUser.blocked_until && new Date(updatedUser.blocked_until) > new Date()) {
+                        return res.status(403).json({ error: "Compte bloqué temporairement" })
+                    }
+                    return res.status(401).json({ error: "Mot de passe incorrect" })
+                })
+            })
+            return
         }
-
-        console.log("Le mot de passe est correct. Connexion réussie.");
         // Réinitialiser compteur d'échecs, générer le JWT, mettre à jour la session
-        AdminDB.resetFailedAttempts(user.id, () => {});
-        const payload = { id: user.id, username: user.username, role: user.role };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-        console.log("Token JWT généré.");
-
-        AdminDB.updateLastSession(user.id, () => {});
-        AdminDB.addAccessLog({ user_id: user.id, ip: req.ip, status: "success", reason: "login" }, () => {});
-        
-        console.log("Envoi de la réponse de succès au client.");
+        AdminDB.resetFailedAttempts(user.id, () => {})
+        const payload = { id: user.id, username: user.username, role: user.role }
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+        AdminDB.updateLastSession(user.id, () => {})
+        AdminDB.addAccessLog({ user_id: user.id, ip: req.ip, status: "success", reason: "login" }, () => {})
         res.json({
             success: true,
             token,
             user: { id: user.id, username: user.username, role: user.role, last_session: user.last_session }
-        });
-    });
-});
+        })
+    })
+})
 
 /**
  * Route POST /api/auth/logout

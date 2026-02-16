@@ -46,7 +46,7 @@ const clientPath = process.env.NODE_ENV === 'production'
 app.use(express.static(clientPath));
 
 
-const port = process.env.PORT || 3000 // Définit le port d'écoute du serveur
+const port = process.env.PORT || 5001 // Définit le port d'écoute du serveur
 
 // Middlewares body-parser (redondant avec express.json et express.urlencoded, mais conservé pour compatibilité si DataQueries les attend)
 app.use(bodyParser.json())
