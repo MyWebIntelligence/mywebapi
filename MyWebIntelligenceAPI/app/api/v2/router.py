@@ -8,13 +8,15 @@ from typing import Dict, Any
 from app.api.versioning import get_api_version_from_request, BREAKING_CHANGES
 
 # Import des endpoints v2
-from .endpoints import lands_v2, export_v2, paragraphs, domains
+from .endpoints import lands_v2, export_v2, paragraphs, domains, auth_v2, admin
 from app.api import deprecation
 
 # Routeur principal v2
 api_router = APIRouter()
 
 # Inclusion des endpoints v2
+api_router.include_router(auth_v2.router, prefix="/auth", tags=["auth-v2"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin-v2"])
 api_router.include_router(lands_v2.router, prefix="/lands", tags=["lands-v2"])
 api_router.include_router(export_v2.router, prefix="/export", tags=["export-v2"])
 api_router.include_router(paragraphs.router, prefix="/paragraphs", tags=["paragraphs-v2"])

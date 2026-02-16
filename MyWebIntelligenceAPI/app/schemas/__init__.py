@@ -5,7 +5,12 @@ Ces schémas sont utilisés pour la validation des données entrantes et sortant
 de l'API, assurant la cohérence et la sécurité des échanges.
 """
 
-from .user import User, UserCreate, UserUpdate, Token, TokenData
+from .user import (
+    User, UserCreate, UserUpdate, Token, TokenData,
+    UserRegister, UserAdminResponse, UserListResponse,
+    BlockUserRequest, SetRoleRequest, AdminStatsResponse,
+    ForgotPasswordRequest, ResetPasswordRequest, AdminUserUpdate,
+)
 from .land import Land, LandCreate, LandUpdate, LandAddTerms, LandAddUrls
 from .domain import Domain, DomainCreate, DomainUpdate
 from .expression import Expression, ExpressionCreate, ExpressionUpdate

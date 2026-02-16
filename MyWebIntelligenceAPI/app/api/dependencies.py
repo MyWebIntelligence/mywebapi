@@ -72,8 +72,10 @@ def get_current_user_sync(
     if username is None:
         raise credentials_exception
 
-    # Query sync
-    user = db.query(User).filter(User.email == username).first()
+    # Query sync - try username first, then email
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        user = db.query(User).filter(User.email == username).first()
     if user is None:
         raise credentials_exception
     return user
@@ -85,4 +87,18 @@ def get_current_active_user_sync(current_user: User = Depends(get_current_user_s
     """
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+def get_current_admin_user_sync(
+    current_user: User = Depends(get_current_active_user_sync),
+) -> User:
+    """
+    Dépendance SYNC pour obtenir l'utilisateur admin actuel (V2 SYNC).
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
     return current_user
