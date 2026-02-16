@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:viz="http://www.gexf.net/1.1draft/viz" version="1.2">
+  <meta lastmodifieddate="2025-07-04" creator="MyWebIntelligence"/>
+  <graph mode="static" defaultedgetype="directed">
+    <attributes class="node">
+      <attribute id="0" title="title" type="string"/>
+      <attribute id="1" title="description" type="string"/>
+      <attribute id="2" title="keywords" type="string"/>
+      <attribute id="3" title="domain_id" type="string"/>
+      <attribute id="4" title="relevance" type="integer"/>
+      <attribute id="5" title="depth" type="integer"/>
+    </attributes>
+    <nodes>
+      <node id="1" label="https://techcrunch.com/2025/07/04/ai-breakthrough-new-language-model">
+        <viz:size value="9"/>
+        <attvalues>
+          <attvalue for="0" value="AI Breakthrough: Revolutionary New Language Model Achieves Human-Level Understanding"/>
+          <attvalue for="1" value="Researchers announce a major breakthrough in artificial intelligence with a new language model."/>
+          <attvalue for="2" value="AI,artificial intelligence,language model,breakthrough,technology"/>
+          <attvalue for="3" value="1"/>
+          <attvalue for="4" value="9"/>
+          <attvalue for="5" value="1"/>
+        </attvalues>
+      </node>
+      <node id="2" label="https://lemonde.fr/technologies/2025/07/04/france-investit-ia-recherche">
+        <viz:size value="8"/>
+        <attvalues>
+          <attvalue for="0" value="La France investit massivement dans la recherche en intelligence artificielle"/>
+          <attvalue for="1" value="Le gouvernement français annonce un plan d'investissement de 2 milliards d'euros pour développer la recherche en IA."/>
+          <attvalue for="2" value="France,investissement,IA,recherche,gouvernement,technologie"/>
+          <attvalue for="3" value="2"/>
+          <attvalue for="4" value="8"/>
+          <attvalue for="5" value="1"/>
+        </attvalues>
+      </node>
+      <node id="3" label="https://github.com/blog/2025-07-04-copilot-updates">
+        <viz:size value="7"/>
+        <attvalues>
+          <attvalue for="0" value="GitHub Copilot: Major Updates Enhance Developer Productivity"/>
+          <attvalue for="1" value="GitHub announces significant improvements to Copilot, including better code suggestions."/>
+          <attvalue for="2" value="GitHub,Copilot,AI,programming,development,productivity"/>
+          <attvalue for="3" value="3"/>
+          <attvalue for="4" value="7"/>
+          <attvalue for="5" value="2"/>
+        </attvalues>
+      </node>
+    </nodes>
+    <edges/>
+  </graph>
+</gexf>

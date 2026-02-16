@@ -1,18 +1,121 @@
-version: '3.8'
+# =============================================================================
+# MyWebIntelligence - Docker Compose Unifié
+# Lance le client React V2 + l'API FastAPI + les services infrastructure
+# Usage:
+#   docker compose up -d              # Tout démarrer
+#   docker compose up -d --build      # Reconstruire et démarrer
+#   docker compose logs -f            # Voir tous les logs
+#   docker compose down               # Tout arrêter
+#   docker compose down -v            # Arrêter + supprimer les données
+# =============================================================================
 
 services:
-  mywebclient:
-    build: .
-    ports:
-      - "5001:5001"
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+
+  db:
+    image: postgres:15
+    container_name: mwi-db
     environment:
-      # Vous pouvez ajouter d'autres variables d'environnement ici si nécessaire
-      # Par exemple, pour la base de données ou d'autres configurations
-      NODE_ENV: production
+      POSTGRES_USER: mwi_user
+      POSTGRES_PASSWORD: mwi_password
+      POSTGRES_DB: mwi_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mwi_user -d mwi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-      # Monter le répertoire du projet pour le développement (optionnel, mais utile pour les changements en direct)
-      # - .:/app
-      # Si vous ne voulez pas de montage de volume pour la production, commentez la ligne ci-dessus
-      # et assurez-vous que le Dockerfile copie bien tous les fichiers nécessaires.
-      - /app/node_modules # Exclure node_modules du montage si le volume est activé
-    restart: always
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: mwi-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Backend API (FastAPI)
+  # ---------------------------------------------------------------------------
+
+  api:
+    build:
+      context: ./MyWebIntelligenceAPI
+      dockerfile: Dockerfile
+    container_name: mywebintelligenceapi
+    env_file:
+      - ./MyWebIntelligenceAPI/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mwi_user:mwi_password@db:5432/mwi_db
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_AUTOSCALE: ${CELERY_AUTOSCALE:-}
+    volumes:
+      - ./MyWebIntelligenceAPI:/app
+      - api_data:/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker (tâches de fond : crawl, export, analyse)
+  # ---------------------------------------------------------------------------
+
+  celery_worker:
+    build:
+      context: ./MyWebIntelligenceAPI
+      dockerfile: Dockerfile
+    container_name: mwi-celery-worker
+    env_file:
+      - ./MyWebIntelligenceAPI/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mwi_user:mwi_password@db:5432/mwi_db
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_AUTOSCALE: ${CELERY_AUTOSCALE:-}
+    volumes:
+      - ./MyWebIntelligenceAPI:/app
+      - api_data:/data
+    command: celery -A app.core.celery_app worker --loglevel=info
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Frontend Client (React 18 + Vite, servi par Nginx)
+  # ---------------------------------------------------------------------------
+
+  client:
+    build:
+      context: ./MyWebClient/client-v2
+      dockerfile: Dockerfile
+    container_name: mwi-client
+    depends_on:
+      - api
+    ports:
+      - "${MWI_CLIENT_PORT:-3000}:80"
+    restart: unless-stopped
+
+# =============================================================================
+# Volumes persistants
+# =============================================================================
+
+volumes:
+  postgres_data:
+    name: mwi_postgres_data
+  api_data:
+    name: mwi_api_data

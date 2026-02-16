@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:viz="http://www.gexf.net/1.1draft/viz" version="1.2">
+  <meta lastmodifieddate="2025-07-04" creator="MyWebIntelligence"/>
+  <graph mode="static" defaultedgetype="directed">
+    <attributes class="node">
+      <attribute id="0" title="title" type="string"/>
+      <attribute id="1" title="description" type="string"/>
+      <attribute id="2" title="keywords" type="string"/>
+      <attribute id="3" title="expressions" type="integer"/>
+      <attribute id="4" title="average_relevance" type="float"/>
+    </attributes>
+    <nodes>
+      <node id="1" label="techcrunch.com">
+        <viz:size value="9.0"/>
+        <attvalues>
+          <attvalue for="0" value="TechCrunch"/>
+          <attvalue for="1" value="Site d'actualités technologiques"/>
+          <attvalue for="2" value="tech,startup,innovation"/>
+          <attvalue for="3" value="1"/>
+          <attvalue for="4" value="9.0"/>
+        </attvalues>
+      </node>
+      <node id="2" label="lemonde.fr">
+        <viz:size value="8.0"/>
+        <attvalues>
+          <attvalue for="0" value="Le Monde"/>
+          <attvalue for="1" value="Journal français d'information"/>
+          <attvalue for="2" value="actualités,france,monde"/>
+          <attvalue for="3" value="1"/>
+          <attvalue for="4" value="8.0"/>
+        </attvalues>
+      </node>
+      <node id="3" label="github.com">
+        <viz:size value="7.0"/>
+        <attvalues>
+          <attvalue for="0" value="GitHub"/>
+          <attvalue for="1" value="Plateforme de développement collaboratif"/>
+          <attvalue for="2" value="code,git,développement"/>
+          <attvalue for="3" value="1"/>
+          <attvalue for="4" value="7.0"/>
+        </attvalues>
+      </node>
+    </nodes>
+    <edges/>
+  </graph>
+</gexf>
