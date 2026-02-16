@@ -77,12 +77,18 @@ class Settings(BaseSettings):
     EXPORT_RETENTION_DAYS: int = 7
 
     # Configuration external APIs (SerpAPI, SEO Rank, etc.)
+    SERPAPI_API_KEY: str = ""
     SERPAPI_BASE_URL: str = "https://serpapi.com/search"
     SERPAPI_TIMEOUT: int = 15
+    SEORANK_API_KEY: str = ""
     SEORANK_API_BASE_URL: str = "https://seo-rank.my-addr.com/api2/moz+sr+fb"
     SEORANK_TIMEOUT: int = 15
-    SEORANK_REQUEST_DELAY: float = 0.0
+    SEORANK_REQUEST_DELAY: float = 1.0
     
+    # Configuration heuristics (domain name extraction patterns)
+    # JSON string: {"twitter.com": "twitter\\.com/([a-zA-Z0-9_]+)", ...}
+    HEURISTICS: str = "{}"
+
     # Configuration logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: Optional[str] = None

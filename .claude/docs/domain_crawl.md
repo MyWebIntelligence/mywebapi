@@ -630,7 +630,7 @@ ALTER TABLE domains ADD COLUMN retry_count INTEGER;
 
 - [Architecture.md](.claude/system/Architecture.md) - Architecture globale V2
 - [AGENTS.md](.claude/AGENTS.md) - Principes V2 SYNC
-- [domaincrawl_dev.md](.claude/tasks/domaincrawl_dev.md) - Plan de développement
+- [AGENTS.md](.claude/AGENTS.md) - Playbook principal
 - [README_DOMAIN_CRAWL_TESTS.md](../tests/README_DOMAIN_CRAWL_TESTS.md) - Documentation tests
 
 ---

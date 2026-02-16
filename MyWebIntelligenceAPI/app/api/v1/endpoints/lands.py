@@ -53,8 +53,8 @@ async def consolidate_land(
             detail="Land not found or you don't have permission"
         )
     
-    # Start consolidation task
-    task_result = consolidate_land_task.delay(land_id)
+    # Start consolidation task (V2 sync - full legacy logic)
+    task_result = consolidate_land_task.delay(land_id=land_id)
     return {
         "message": f"Consolidation started for land {land_id}",
         "task_id": task_result.id
@@ -66,23 +66,32 @@ async def consolidate_land(
 @router.post("/{land_id}/seorank")
 async def analyze_seo_rank(
     land_id: int,
+    limit: int = 0,
+    min_relevance: int = 1,
+    force_refresh: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Dict[str, Any]:
     """
-    Analyze SEO ranking for expressions in a land.
+    Fetch SEO Rank data for expressions in a land.
     """
-    # Check if user has permission
+    from app.tasks.seorank_task import seorank_task
+
     land_obj = await crud_land.get(db, id=land_id)
     if not land_obj or land_obj.owner_id != getattr(current_user, 'id', None):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Land not found or you don't have permission"
         )
-    
-    # TODO: Implement SEO ranking task
+
+    task_result = seorank_task.delay(
+        land_id=land_id,
+        limit=limit,
+        min_relevance=min_relevance,
+        force_refresh=force_refresh,
+    )
     return {
-        "message": f"SEO ranking not yet implemented for land {land_id}",
-        "status": "placeholder"
+        "message": f"SEO Rank enrichment started for land {land_id}",
+        "task_id": task_result.id,
     }
 

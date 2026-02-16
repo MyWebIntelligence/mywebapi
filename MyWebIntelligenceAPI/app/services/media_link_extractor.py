@@ -37,10 +37,10 @@ class MediaLinkExtractor:
         media_list = []
         
         # Pattern for markdown images: ![alt](url "title")
-        image_pattern = r'!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]*)")?\)'
+        image_pattern = r'!\[([^\]]*)\]\(([^\s")]+)(?:\s+"([^"]*)")?\)'
         
         # Pattern for HTML img tags that might be embedded in markdown
-        html_img_pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*(?:alt=["\']([^"\']*)["\'][^>]*)?(?:title=["\']([^"\']*)["\'][^>]*)?>'
+        html_img_pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*?(?:alt=["\']([^"\']*)["\'][^>]*?)?(?:title=["\']([^"\']*)["\'][^>]*)?>'
         
         # Extract markdown images
         for match in re.finditer(image_pattern, markdown_content):
@@ -100,10 +100,10 @@ class MediaLinkExtractor:
         link_list = []
         
         # Pattern for markdown links: [text](url "title")
-        link_pattern = r'\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]*)")?\)'
+        link_pattern = r'(?<!!)\[([^\]]*)\]\(([^\s")]+)(?:\s+"([^"]*)")?\)'
         
         # Pattern for HTML anchor tags
-        html_link_pattern = r'<a[^>]+href=["\']([^"\']+)["\'][^>]*(?:title=["\']([^"\']*)["\'][^>]*)?>(.*?)</a>'
+        html_link_pattern = r'<a[^>]+href=["\']([^"\']+)["\'][^>]*?(?:title=["\']([^"\']*)["\'][^>]*)?>(.*?)</a>'
         
         base_domain = urlparse(base_url).netloc
         
@@ -181,13 +181,8 @@ class MediaLinkExtractor:
                         url=cleaned_url,
                         type=media_info.media_type,
                         alt_text=media_info.alt_text,
-                        title=media_info.title,
+                        caption=media_info.title,
                         is_processed=False,
-                        # Additional fields that might be populated later during media analysis
-                        width=None,
-                        height=None,
-                        file_size=None,
-                        metadata={}
                     )
                     self.db.add(media)
                     created_count += 1
@@ -221,8 +216,8 @@ class MediaLinkExtractor:
                     # Check if link already exists
                     existing_link_query = select(ExpressionLink).where(
                         and_(
-                            ExpressionLink.source_expression_id == source_expression_id,
-                            ExpressionLink.target_expression_id == target_expression.id
+                            ExpressionLink.source_id == source_expression_id,
+                            ExpressionLink.target_id == target_expression.id
                         )
                     )
                     existing_link_result = await self.db.execute(existing_link_query)
@@ -231,12 +226,10 @@ class MediaLinkExtractor:
                     if not existing_link:
                         # Create new expression link
                         expression_link = ExpressionLink(
-                            source_expression_id=source_expression_id,
-                            target_expression_id=target_expression.id,
+                            source_id=source_expression_id,
+                            target_id=target_expression.id,
                             anchor_text=link_info.anchor_text,
-                            link_type=link_info.link_type,
-                            # Additional metadata from markdown extraction
-                            title=link_info.title
+                            link_type=link_info.link_type
                         )
                         self.db.add(expression_link)
                         created_count += 1

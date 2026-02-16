@@ -1265,3 +1265,305 @@ async def llm_validate_land_v2(
             status_code=500,
             detail=f"Failed to run LLM validation: {str(e)}"
         )
+
+
+# ─────────────────────────────────────────────────────────────
+# SerpAPI URL gathering
+# ─────────────────────────────────────────────────────────────
+
+class SerpAPIRequest(BaseModel):
+    """Request body for SerpAPI URL gathering."""
+    query: str
+    engine: str = "google"
+    lang: str = "fr"
+    datestart: Optional[str] = None
+    dateend: Optional[str] = None
+    timestep: str = "week"
+    sleep: float = 1.0
+
+
+@router.post("/{land_id}/serpapi-urls", response_model=Dict[str, Any])
+async def gather_serpapi_urls_v2(
+    land_id: int,
+    payload: SerpAPIRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Gather URLs from SerpAPI (Google/Bing/DuckDuckGo) and add them to the land.
+    Replaces legacy `land urlist` command.
+    """
+    from app.config import settings
+    from app.services.serpapi_service import fetch_serpapi_url_list, SerpApiError
+
+    land = await crud_land.get(db, id=land_id)
+    if not land or land.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "LAND_NOT_FOUND",
+                "message": f"Land {land_id} not found or inaccessible",
+            },
+        )
+
+    api_key = settings.SERPAPI_API_KEY
+    if not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "SERPAPI_NOT_CONFIGURED",
+                "message": "SERPAPI_API_KEY is not configured",
+                "suggestion": "Set SERPAPI_API_KEY in your .env file",
+            },
+        )
+
+    try:
+        results = fetch_serpapi_url_list(
+            api_key=api_key,
+            query=payload.query,
+            engine=payload.engine,
+            lang=payload.lang,
+            datestart=payload.datestart,
+            dateend=payload.dateend,
+            timestep=payload.timestep,
+            sleep_seconds=payload.sleep,
+        )
+
+        # Add discovered URLs to the land
+        urls_to_add = [r["url"] for r in results if r.get("url")]
+        added_count = 0
+        if urls_to_add:
+            updated = await crud_land.add_urls_to_land(db, land_id, urls_to_add)
+            if updated:
+                added_count = len(urls_to_add)
+
+        return {
+            "land_id": land_id,
+            "query": payload.query,
+            "engine": payload.engine,
+            "total_results": len(results),
+            "urls_added": added_count,
+            "results": results[:20],  # Return first 20 for preview
+        }
+
+    except SerpApiError as e:
+        raise HTTPException(status_code=400, detail={"error_code": "SERPAPI_ERROR", "message": str(e)})
+    except Exception as e:
+        logger.error(f"SerpAPI failed for land {land_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"SerpAPI request failed: {str(e)}")
+
+
+# ─────────────────────────────────────────────────────────────
+# Delete expressions by maxrel
+# ─────────────────────────────────────────────────────────────
+
+@router.delete("/{land_id}/expressions", response_model=Dict[str, Any])
+async def delete_expressions_by_relevance_v2(
+    land_id: int,
+    maxrel: float = Query(..., description="Delete expressions with relevance below this threshold"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Delete expressions below a relevance threshold.
+    Replaces legacy `land delete --maxrel=X`.
+    """
+    from sqlalchemy import text as sql_text
+
+    land = await crud_land.get(db, id=land_id)
+    if not land or land.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "LAND_NOT_FOUND",
+                "message": f"Land {land_id} not found or inaccessible",
+            },
+        )
+
+    try:
+        # Count before delete
+        count_result = await db.execute(
+            sql_text(
+                "SELECT COUNT(*) FROM expressions WHERE land_id = :lid AND relevance < :maxrel"
+            ),
+            {"lid": land_id, "maxrel": maxrel},
+        )
+        to_delete = count_result.scalar() or 0
+
+        if to_delete == 0:
+            return {
+                "land_id": land_id,
+                "deleted": 0,
+                "message": f"No expressions with relevance < {maxrel}",
+            }
+
+        # Delete related records first (links, media)
+        await db.execute(
+            sql_text("""
+                DELETE FROM expression_links
+                WHERE source_id IN (SELECT id FROM expressions WHERE land_id = :lid AND relevance < :maxrel)
+                   OR target_id IN (SELECT id FROM expressions WHERE land_id = :lid AND relevance < :maxrel)
+            """),
+            {"lid": land_id, "maxrel": maxrel},
+        )
+        await db.execute(
+            sql_text("""
+                DELETE FROM media
+                WHERE expression_id IN (SELECT id FROM expressions WHERE land_id = :lid AND relevance < :maxrel)
+            """),
+            {"lid": land_id, "maxrel": maxrel},
+        )
+        # Delete expressions
+        await db.execute(
+            sql_text("DELETE FROM expressions WHERE land_id = :lid AND relevance < :maxrel"),
+            {"lid": land_id, "maxrel": maxrel},
+        )
+        await db.commit()
+
+        return {
+            "land_id": land_id,
+            "deleted": to_delete,
+            "threshold": maxrel,
+            "message": f"Deleted {to_delete} expressions with relevance < {maxrel}",
+        }
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Delete by maxrel failed for land {land_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+
+# ─────────────────────────────────────────────────────────────
+# Consolidation V2
+# ─────────────────────────────────────────────────────────────
+
+@router.post("/{land_id}/consolidate", response_model=Dict[str, Any])
+async def consolidate_land_v2(
+    land_id: int,
+    limit: int = Query(0, ge=0, description="Max expressions to process (0=unlimited)"),
+    depth: Optional[int] = Query(None, ge=0, description="Only process at this depth"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Consolidate a land : recalculate relevance, rebuild links and media.
+    Replaces legacy `land consolidate`.
+    """
+    from app.tasks.consolidation_task import consolidate_land_task
+
+    land = await crud_land.get(db, id=land_id)
+    if not land or land.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail={"error_code": "LAND_NOT_FOUND", "message": f"Land {land_id} not found"},
+        )
+
+    task_result = consolidate_land_task.delay(land_id=land_id, limit=limit, depth=depth)
+    return {
+        "message": f"Consolidation started for land {land_id}",
+        "task_id": task_result.id,
+        "parameters": {"limit": limit, "depth": depth},
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# Heuristic update : recalculate domain names using heuristic patterns
+# ─────────────────────────────────────────────────────────────
+
+class HeuristicUpdateRequest(BaseModel):
+    """Request body for heuristic update."""
+    heuristics: Optional[Dict[str, str]] = None  # {"twitter.com": "twitter\\.com/([a-zA-Z0-9_]+)"}
+
+
+@router.post("/{land_id}/heuristic-update", response_model=Dict[str, Any])
+async def heuristic_update_v2(
+    land_id: int,
+    payload: Optional[HeuristicUpdateRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Recalculate domain names for all expressions in a land using heuristic patterns.
+    Replaces legacy `heuristic update`.
+
+    If heuristics are provided in the request body, they override the global settings.
+    Format: {"domain_suffix": "regex_pattern_to_extract_new_domain"}
+    Example: {"twitter.com": "twitter\\\\.com/([a-zA-Z0-9_]+)"}
+    """
+    import json
+    from app.tasks.heuristic_update_task import heuristic_update_task
+
+    land = await crud_land.get(db, id=land_id)
+    if not land or land.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail="Land not found or access denied",
+        )
+
+    heuristics_json = None
+    if payload and payload.heuristics:
+        heuristics_json = json.dumps(payload.heuristics)
+
+    task_result = heuristic_update_task.delay(
+        land_id=land_id,
+        heuristics_override=heuristics_json,
+    )
+    return {
+        "message": f"Heuristic update started for land {land_id}",
+        "task_id": task_result.id,
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# SEO Rank : fetch SEO metrics for expressions from seo-rank.my-addr.com
+# ─────────────────────────────────────────────────────────────
+
+class SeoRankRequest(BaseModel):
+    """Request body for SEO Rank enrichment."""
+    limit: int = 0
+    depth: Optional[int] = None
+    min_relevance: int = 1
+    force_refresh: bool = False
+
+
+@router.post("/{land_id}/seorank", response_model=Dict[str, Any])
+async def seorank_land_v2(
+    land_id: int,
+    payload: Optional[SeoRankRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Fetch SEO Rank data for expressions in a land.
+    Replaces legacy `land seorank`.
+
+    Calls the SEO Rank API (seo-rank.my-addr.com) for each qualifying expression
+    and stores the raw JSON metrics in the seorank field.
+    """
+    from app.tasks.seorank_task import seorank_task
+
+    land = await crud_land.get(db, id=land_id)
+    if not land or land.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail="Land not found or access denied",
+        )
+
+    p = payload or SeoRankRequest()
+    task_result = seorank_task.delay(
+        land_id=land_id,
+        limit=p.limit,
+        depth=p.depth,
+        min_relevance=p.min_relevance,
+        force_refresh=p.force_refresh,
+    )
+    return {
+        "message": f"SEO Rank enrichment started for land {land_id}",
+        "task_id": task_result.id,
+        "parameters": {
+            "limit": p.limit,
+            "depth": p.depth,
+            "min_relevance": p.min_relevance,
+            "force_refresh": p.force_refresh,
+        },
+    }

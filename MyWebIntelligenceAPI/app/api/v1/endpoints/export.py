@@ -15,7 +15,7 @@ from app.db.models import User
 from app.services.export_service import ExportService
 from app.crud.crud_land import land as land_crud
 from app.schemas.export import ExportRequest, ExportResponse, ExportJob
-# from app.tasks.export_tasks import create_export_task  # Will be implemented when Celery is fully configured
+from app.tasks.export_tasks import create_export_task
 
 
 router = APIRouter()
@@ -41,22 +41,24 @@ async def export_csv(
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Validate CSV export type
-    csv_types = ["pagecsv", "fullpagecsv", "nodecsv", "mediacsv"]
+    csv_types = ["pagecsv", "fullpagecsv", "nodecsv", "mediacsv",
+                 "pseudolinks", "pseudolinkspage", "pseudolinksdomain",
+                 "tagmatrix", "tagcontent"]
     if request.export_type not in csv_types:
         raise HTTPException(
             status_code=400, 
             detail=f"Invalid CSV export type. Must be one of: {', '.join(csv_types)}"
         )
     
-    # Create export task (simplified for testing - use direct export)
-    import uuid
-    job_id = str(uuid.uuid4())
-    
-    # For now, use direct export functionality
-    # TODO: Replace with actual Celery task when fully configured
-    
+    task_result = create_export_task.delay(
+        export_type=request.export_type,
+        land_id=request.land_id,
+        minimum_relevance=request.minimum_relevance or 1,
+        user_id=current_user.id,
+    )
+
     return ExportResponse(
-        job_id=job_id,
+        job_id=task_result.id,
         export_type=request.export_type,
         land_id=request.land_id,
         status="pending",
@@ -79,31 +81,64 @@ async def export_gexf(
     land = await land_crud.get(db, id=request.land_id)
     if not land:
         raise HTTPException(status_code=404, detail="Land not found")
-    
+
     if land.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     # Validate GEXF export type
     gexf_types = ["pagegexf", "nodegexf"]
     if request.export_type not in gexf_types:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Invalid GEXF export type. Must be one of: {', '.join(gexf_types)}"
         )
-    
-    # Create export task (simplified for testing - use direct export)
-    import uuid
-    job_id = str(uuid.uuid4())
-    
-    # For now, use direct export functionality
-    # TODO: Replace with actual Celery task when fully configured
-    
+
+    task_result = create_export_task.delay(
+        export_type=request.export_type,
+        land_id=request.land_id,
+        minimum_relevance=request.minimum_relevance or 1,
+        user_id=current_user.id,
+    )
+
     return ExportResponse(
-        job_id=job_id,
+        job_id=task_result.id,
         export_type=request.export_type,
         land_id=request.land_id,
         status="pending",
         message="Export job created successfully"
+    )
+
+
+@router.post("/nodelinkcsv", response_model=ExportResponse)
+async def export_nodelinkcsv(
+    request: ExportRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> ExportResponse:
+    """
+    Export complete network data as a ZIP of 4 CSV files:
+    pagesnodes, pageslinks, domainnodes, domainlinks
+    """
+    land = await land_crud.get(db, id=request.land_id)
+    if not land:
+        raise HTTPException(status_code=404, detail="Land not found")
+    if land.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    task_result = create_export_task.delay(
+        export_type="nodelinkcsv",
+        land_id=request.land_id,
+        minimum_relevance=request.minimum_relevance or 1,
+        user_id=current_user.id,
+    )
+
+    return ExportResponse(
+        job_id=task_result.id,
+        export_type="nodelinkcsv",
+        land_id=request.land_id,
+        status="pending",
+        message="NodeLinkCSV export job created successfully"
     )
 
 
@@ -130,16 +165,15 @@ async def export_corpus(
     if request.export_type != "corpus":
         request.export_type = "corpus"
     
-    # Create export task
-    job_id = await create_export_task.delay(
+    task_result = create_export_task.delay(
         export_type="corpus",
         land_id=request.land_id,
-        minimum_relevance=request.minimum_relevance,
-        user_id=current_user.id
+        minimum_relevance=request.minimum_relevance or 1,
+        user_id=current_user.id,
     )
-    
+
     return ExportResponse(
-        job_id=job_id,
+        job_id=task_result.id,
         export_type="corpus",
         land_id=request.land_id,
         status="pending",
@@ -156,7 +190,7 @@ async def get_export_job_status(
     Get the status of an export job
     """
     from celery.result import AsyncResult
-    from app.tasks.celery_app import celery_app
+    from app.core.celery_app import celery_app
     
     result = AsyncResult(job_id, app=celery_app)
     
@@ -199,7 +233,7 @@ async def download_export_file(
     Download the exported file for a completed job
     """
     from celery.result import AsyncResult
-    from app.tasks.celery_app import celery_app
+    from app.core.celery_app import celery_app
     
     result = AsyncResult(job_id, app=celery_app)
     
@@ -255,7 +289,10 @@ async def export_direct(
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Validate export type
-    valid_types = ["pagecsv", "fullpagecsv", "nodecsv", "mediacsv", "pagegexf", "nodegexf", "corpus"]
+    valid_types = ["pagecsv", "fullpagecsv", "nodecsv", "mediacsv",
+                   "pagegexf", "nodegexf", "corpus", "nodelinkcsv",
+                   "pseudolinks", "pseudolinkspage", "pseudolinksdomain",
+                   "tagmatrix", "tagcontent"]
     if request.export_type not in valid_types:
         raise HTTPException(
             status_code=400, 
@@ -296,7 +333,7 @@ async def cancel_export_job(
     Cancel a running export job
     """
     from celery.result import AsyncResult
-    from app.tasks.celery_app import celery_app
+    from app.core.celery_app import celery_app
     
     result = AsyncResult(job_id, app=celery_app)
     

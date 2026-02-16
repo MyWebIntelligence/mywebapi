@@ -380,9 +380,8 @@ print(result)
 
 ## 📚 Related Documentation
 
-- [Main Development Plan](.claude/docs/sentiment_dev.md) - Complete implementation guide
-- [Architecture](.claude/Architecture.md) - System architecture overview
-- [Double Crawler Pattern](.claude/ERREUR_DOUBLE_CRAWLER.md) - Important crawler consistency rules
+- [Architecture](.claude/system/Architecture.md) - System architecture overview
+- [AGENTS.md](.claude/AGENTS.md) - Playbook principal (source unique du crawl)
 - [Text Processing](MyWebIntelligenceAPI/app/core/text_processing.py) - Language detection
 
 ---

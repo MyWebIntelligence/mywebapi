@@ -76,11 +76,10 @@ class TestCrawlingService:
             assert create_args['obj_in'].parameters['depth'] == 3
             assert create_args['obj_in'].parameters['http_status'] is None
             
-            # Verify task dispatch
+            # Verify task dispatch (V2 sync: no ws_channel kwarg)
             mock_send_task.assert_called_once_with(
                 "tasks.crawl_land_task",
-                args=[123],
-                kwargs={"ws_channel": "crawl_progress_123"}
+                args=[123]
             )
     
     async def test_start_crawl_for_land_with_all_parameters(self):
@@ -225,12 +224,11 @@ class TestCrawlingService:
             
             # Verify WebSocket channel format
             assert result["ws_channel"] == "crawl_progress_999"
-            
-            # Verify que le channel est passé à la tâche
+
+            # Verify task dispatch (V2 sync: no ws_channel kwarg)
             mock_send_task.assert_called_once_with(
                 "tasks.crawl_land_task",
-                args=[999],
-                kwargs={"ws_channel": "crawl_progress_999"}
+                args=[999]
             )
     
     async def test_start_crawl_for_land_job_parameters_structure(self):
@@ -324,7 +322,7 @@ class TestCrawlingService:
             
             # Verify que l'ID Celery est mis à jour
             assert mock_job.celery_task_id == "celery-task-456"
-            
-            # Verify commit et refresh
-            self.mock_db.commit.assert_called_once()
-            self.mock_db.refresh.assert_called_once_with(mock_job)
+
+            # Verify commit et refresh (called twice: once after create, once after celery_task_id update)
+            assert self.mock_db.commit.call_count == 2
+            assert self.mock_db.refresh.call_count == 2

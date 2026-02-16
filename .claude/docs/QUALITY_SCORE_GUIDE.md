@@ -41,8 +41,7 @@ Le **Quality Score** est un indicateur de qualité pour chaque expression (page 
 | Fichier | Rôle |
 |---------|------|
 | `app/services/quality_scorer.py` | Service de calcul (5 blocs heuristiques) |
-| `app/core/crawler_engine.py` | Intégration dans crawler ASYNC |
-| `app/core/crawler_engine_sync.py` | Intégration dans crawler SYNC (Celery) |
+| `app/core/crawler_engine.py` | Intégration dans le crawler (moteur unique V2) |
 | `app/scripts/reprocess_quality_scores.py` | Script de recalcul pour historique |
 | `app/config.py` | Configuration des poids |
 | `tests/data/quality_truth_table.json` | 20 cas de test de validation |

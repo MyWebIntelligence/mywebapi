@@ -32,9 +32,11 @@ Les chemins entre parenthèses renvoient à l’implémentation dans `MyWebIntel
 | **Embeddings / Paragraphes** | `POST /lands/{id}/embeddings` (v1) | `services/embedding_service.py` → `tasks/embedding_tasks.py` | `core/embedding_providers/*` | Génère paragraphes et embeddings, remplit `Paragraph`, `ParagraphEmbedding`, `ParagraphSimilarity` |
 | **Exports** | `POST /lands/{id}/export` (`v1`, `v2`) | `services/export_service.py` / `_sync.py` → `tasks/export_task.py` | `services/export_service*` (SQL + CSV/GEXF writer) | Produit les fichiers sous `exports/`, expose colonnes seorank/media/readable |
 | **Dictionary / Text** | `POST /lands/{id}/dictionary` etc. | `services/dictionary_service.py`, `services/text_processor_service.py` | `core/text_processing.py` | Maintient les `LandDictionary`, mots/lemmes, scores relevance |
-| **Validation LLM** | Activée via `enable_llm` ou `POST /lands/{id}/llm-validate` (à implémenter) | `services/llm_validation_service.py` | OpenRouter API | Marque `valid_llm`, `valid_model`, ajustement relevance |
-| **SEO Rank** | `POST /lands/{id}/seorank` (placeholder) | (plan `transfert_seorank_dev.md`) | API SEO Rank | Mettra à jour `Expression.seo_rank` |
-| **Domain Crawl** | (plan `domaincrawl_dev.md`) | - | `core` (legacy import) | Enrichira table `domains` indépendamment du crawl expressions |
+| **Validation LLM** | `enable_llm` dans crawl ou `POST /lands/{id}/llm-validate` | `services/llm_validation_service.py` | OpenRouter API | Marque `valid_llm`, `valid_model`, ajustement relevance. Voir `docs/LLM_VALIDATION_GUIDE.md` |
+| **SEO Rank** | `POST /lands/{id}/seorank` | `tasks/seorank_task.py` | API SEO Rank (httpx) | Enrichit `Expression.seo_rank` avec JSON brut de l'API |
+| **Consolidation** | `POST /lands/{id}/consolidate` | `tasks/consolidation_task.py` | `core/text_processing.py` | Recalcule relevance, rebuild links/media, ajoute expressions manquantes |
+| **Heuristic Update** | `POST /lands/{id}/heuristic-update` | `tasks/heuristic_update_task.py` | `crud/crud_domain.py` | Recalcule les noms de domaine selon les regles heuristiques |
+| **Domain Crawl** | `POST /domains/crawl` | `services/domain_crawl_service.py`, `tasks/domain_crawl_task.py` | `core/domain_crawler.py` | Enrichit table `domains`. Voir `docs/domain_crawl.md` |
 
 ### 1.4 Composants transverses
 - **Authentification & sécurité** – `core/security.py`, endpoints `api/v1/auth.py`, dépendances `api/dependencies.py`.
@@ -95,8 +97,9 @@ La structure complète (colonnes, index, contraintes) est disponible dans `app/d
 ---
 
 ## 4. Ressources complémentaires
-- Carte documentaire : `.claude/INDEX_DOCUMENTATION.md`.
-- Pipelines détaillés : `.claude/tasks/domaincrawl_dev.md`, `transfert_mediaanalyse_dev.md`, `transfert_seorank_dev.md`, `transfer_llm_validation.md`.
-- Guides dédiés : `.claude/docs/QUALITY_SCORE_GUIDE.md`, `SENTIMENT_INSTALLATION.md`, `CHAÎNE_FALLBACKS.md`.
+- Playbook principal : `.claude/AGENTS.md`.
+- Guides dédiés : `.claude/docs/QUALITY_SCORE_GUIDE.md`, `.claude/docs/SENTIMENT_ANALYSIS_FEATURE.md`, `.claude/docs/CHAÎNE_FALLBACKS.md`, `.claude/docs/LLM_VALIDATION_GUIDE.md`, `.claude/docs/domain_crawl.md`.
+- Taches terminees : `.claude/tasks/transfert_mediaanalyse_dev.md`, `.claude/tasks/transfert_seorank_dev.md`, `.claude/tasks/Transfert_readable.md`.
+- Audit complet du transfert legacy : `.claude/docs/TRANSFERT_AUDIT.md` (30/30 fonctions implementees).
 
 Ce document doit servir de point d’entrée rapide pour comprendre comment l’API v2 orchestre ses pipelines, comment les données sont structurées et comment l’infrastructure Docker assemble le tout.

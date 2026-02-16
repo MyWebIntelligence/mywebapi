@@ -432,7 +432,7 @@ curl "http://localhost:8000/api/v2/lands/${LAND_ID}/stats" \
 ## 📖 Ressources complémentaires
 
 - **Configuration OpenRouter** : [.claude/tasks/OPENROUTER_SETUP.md](.claude/tasks/OPENROUTER_SETUP.md)
-- **Plan d'implémentation** : [.claude/tasks/transfer_llm_validation.md](.claude/tasks/transfer_llm_validation.md)
+- **Playbook principal** : [.claude/AGENTS.md](.claude/AGENTS.md)
 - **Tests unitaires** : [tests/unit/test_llm_validation_service.py](MyWebIntelligenceAPI/tests/unit/test_llm_validation_service.py)
 - **Site OpenRouter** : https://openrouter.ai/
 - **Documentation API** : https://openrouter.ai/docs
