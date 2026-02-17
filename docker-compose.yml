@@ -1,6 +1,6 @@
 # =============================================================================
 # MyWebIntelligence - Docker Compose Unifié
-# Lance le client React V2 + l'API FastAPI + les services infrastructure
+# Lance le client React + l'API FastAPI + les services infrastructure
 # Usage:
 #   docker compose up -d              # Tout démarrer
 #   docker compose up -d --build      # Reconstruire et démarrer
@@ -65,6 +65,8 @@ services:
     volumes:
       - ./MyWebIntelligenceAPI:/app
       - api_data:/data
+    ports:
+      - "${MWI_API_PORT:-8000}:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
