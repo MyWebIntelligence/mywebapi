@@ -101,7 +101,7 @@ services:
 
   client:
     build:
-      context: ./MyWebClient/client-v2
+      context: ./MyWebClient/client
       dockerfile: Dockerfile
     container_name: mwi-client
     depends_on:
