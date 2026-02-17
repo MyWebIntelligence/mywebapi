@@ -1,19 +1,14 @@
 # =============================================================================
-# MyWebIntelligence - Docker Compose Unifié
-# Lance le client React + l'API FastAPI + les services infrastructure
+# MyWebIntelligence - Docker Compose (API only)
 # Usage:
-#   docker compose up -d              # Tout démarrer
+#   docker compose up -d              # Démarrer
 #   docker compose up -d --build      # Reconstruire et démarrer
 #   docker compose logs -f            # Voir tous les logs
-#   docker compose down               # Tout arrêter
+#   docker compose down               # Arrêter
 #   docker compose down -v            # Arrêter + supprimer les données
 # =============================================================================
 
 services:
-  # ---------------------------------------------------------------------------
-  # Infrastructure
-  # ---------------------------------------------------------------------------
-
   db:
     image: postgres:15
     container_name: mwi-db
@@ -41,10 +36,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # Backend API (FastAPI)
-  # ---------------------------------------------------------------------------
-
   api:
     build:
       context: ./MyWebIntelligenceAPI
@@ -70,10 +61,6 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # Celery Worker (tâches de fond : crawl, export, analyse)
-  # ---------------------------------------------------------------------------
-
   celery_worker:
     build:
       context: ./MyWebIntelligenceAPI
@@ -96,25 +83,6 @@ services:
       - api_data:/data
     command: celery -A app.core.celery_app worker --loglevel=info
     restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # Frontend Client (React 18 + Vite, servi par Nginx)
-  # ---------------------------------------------------------------------------
-
-  client:
-    build:
-      context: ./MyWebClient/client
-      dockerfile: Dockerfile
-    container_name: mwi-client
-    depends_on:
-      - api
-    ports:
-      - "${MWI_CLIENT_PORT:-3000}:80"
-    restart: unless-stopped
-
-# =============================================================================
-# Volumes persistants
-# =============================================================================
 
 volumes:
   postgres_data:
