@@ -1,0 +1,60 @@
+/* Main application grid layout — Legacy-harmonized */
+.App {
+  display: grid;
+  height: 100vh;
+  grid-template-columns: 25% 75%;
+  grid-template-rows: 60px auto;
+  overflow: hidden;
+}
+
+.App-header {
+  grid-column: 1 / -1;
+  z-index: 100;
+}
+
+.App-sidebar {
+  grid-row: 2 / 3;
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+  background: #fff;
+  padding: 1rem;
+}
+
+.App-view {
+  grid-row: 2 / 3;
+  overflow-y: auto;
+  padding: 1rem;
+  position: relative;
+}
+
+/* No-sidebar variant: explorer uses its own sidebar */
+.App.App-no-sidebar {
+  grid-template-columns: 1fr;
+}
+
+.App.App-no-sidebar .App-view {
+  padding: 0;
+}
+
+/* Responsive: collapse sidebar on small screens */
+@media (max-width: 768px) {
+  .App {
+    grid-template-columns: 1fr;
+  }
+
+  .App-sidebar {
+    display: none;
+  }
+
+  .App-sidebar.show {
+    display: block;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 280px;
+    height: calc(100vh - 60px);
+    z-index: 99;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    background: #fff;
+  }
+}

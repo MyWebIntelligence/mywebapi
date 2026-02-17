@@ -28,7 +28,8 @@ from app.schemas.domain_crawl import (
 )
 from app.services.domain_crawl_service import DomainCrawlService
 from app.tasks.domain_crawl_task import domain_crawl_task, domain_recrawl_task
-from app.db.models import Domain
+from app.db.models import Domain, Expression
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,49 @@ def list_crawled_domains(
     logger.info(f"Retrieved {len(result)} crawled domain(s)")
 
     return result
+
+
+@router.get("/{domain_id}")
+def get_domain_detail(
+    domain_id: int,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_active_user_sync)
+):
+    """
+    Detail d'un domaine avec statistiques (SYNC endpoint).
+
+    Retourne le domaine avec le nombre d'expressions et les langues.
+    """
+    domain = db.query(Domain).filter(Domain.id == domain_id).first()
+    if not domain:
+        raise HTTPException(status_code=404, detail=f"Domain {domain_id} not found")
+
+    # Stats: expression count + languages
+    expr_stats = (
+        db.query(
+            func.count(Expression.id).label("expr_count"),
+            func.array_agg(func.distinct(Expression.lang)).label("languages"),
+        )
+        .filter(Expression.domain_id == domain_id)
+        .first()
+    )
+
+    return {
+        "id": domain.id,
+        "name": domain.name,
+        "land_id": domain.land_id,
+        "title": domain.title,
+        "description": domain.description,
+        "keywords": domain.keywords,
+        "language": domain.language,
+        "http_status": domain.http_status,
+        "ip_address": domain.ip_address,
+        "total_expressions": expr_stats.expr_count if expr_stats else 0,
+        "languages": [l for l in (expr_stats.languages or []) if l] if expr_stats else [],
+        "first_crawled": domain.first_crawled.isoformat() if domain.first_crawled else None,
+        "last_crawled": domain.last_crawled.isoformat() if domain.last_crawled else None,
+        "fetched_at": domain.fetched_at.isoformat() if domain.fetched_at else None,
+    }
 
 
 @router.post("/{domain_id}/recrawl")

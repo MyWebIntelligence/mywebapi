@@ -1,50 +1,40 @@
 {
   "name": "mwi-client-react-ui",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "MIT",
   "private": true,
-  "dependencies": {
-    "@testing-library/dom": "^7.9.0",
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.3.2",
-    "@testing-library/user-event": "^7.1.2",
-    "axios": "^0.21.1",
-    "bootstrap": "^4.4.1",
-    "jquery": "3.5.1",
-    "marked": "^4.0.10",
-    "popper.js": "^1.16.1",
-    "prop-types": "^15.7.2",
-    "qs": "^6.9.4",
-    "react": "^16.12.0",
-    "react-bootstrap": "^1.0.0-beta.16",
-    "react-color": "2.17.3",
-    "react-dnd": "7.3.0",
-    "react-dom": "^16.12.0",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "^3.4.0",
-    "react-sortable-tree": "^2.7.1",
-    "typescript": "^3.9.3"
-  },
+  "type": "module",
   "scripts": {
-    "start": "./node_modules/.bin/react-scripts start",
-    "build": "./node_modules/.bin/react-scripts build",
-    "test": "./node_modules/.bin/react-scripts test",
-    "eject": "./node_modules/.bin/react-scripts eject"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "eslintConfig": {
-    "extends": "react-app"
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@fortawesome/fontawesome-free": "^6.5.1",
+    "@popperjs/core": "^2.11.8",
+    "axios": "^1.6.7",
+    "bootstrap": "^5.3.3",
+    "graphology": "^0.25.4",
+    "graphology-communities-louvain": "^2.0.1",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "graphology-types": "^0.24.8",
+    "marked": "^12.0.0",
+    "prop-types": "^15.8.1",
+    "qs": "^6.11.2",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.7",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "react-router-dom": "^6.28.1",
+    "react-textarea-autosize": "^8.5.3",
+    "sigma": "^3.0.0-beta.18"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": "http://localhost:5001/"
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "sass": "^1.71.1",
+    "vite": "^5.1.4"
+  }
 }

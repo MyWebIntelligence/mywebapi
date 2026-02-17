@@ -8,7 +8,8 @@ from typing import Dict, Any
 from app.api.versioning import get_api_version_from_request, BREAKING_CHANGES
 
 # Import des endpoints v2
-from .endpoints import lands_v2, export_v2, paragraphs, domains, auth_v2, admin
+from .endpoints import lands_v2, export_v2, paragraphs, domains, auth_v2, admin, graph
+from .endpoints import expressions_v2, media_v2
 from app.api import deprecation
 
 # Routeur principal v2
@@ -21,6 +22,9 @@ api_router.include_router(lands_v2.router, prefix="/lands", tags=["lands-v2"])
 api_router.include_router(export_v2.router, prefix="/export", tags=["export-v2"])
 api_router.include_router(paragraphs.router, prefix="/paragraphs", tags=["paragraphs-v2"])
 api_router.include_router(domains.router, prefix="/domains", tags=["domains-v2"])
+api_router.include_router(graph.router, prefix="/lands", tags=["graph-v2"])
+api_router.include_router(expressions_v2.router, tags=["expressions-v2"])
+api_router.include_router(media_v2.router, prefix="/media", tags=["media-v2"])
 api_router.include_router(deprecation.router, prefix="/deprecation", tags=["deprecation"])
 
 # Endpoint d'info pour la v2
